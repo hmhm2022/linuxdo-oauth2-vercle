@@ -40,21 +40,37 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <Head>
-        <title>LinuxDo OAuth2 登录</title>
+        <title>Linux.do OAuth2 认证</title>
         <meta name="description" content="使用LinuxDo账号登录" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <main className={styles.main}>
         <h1 className={styles.title}>
-          欢迎使用 LinuxDo OAuth2 登录
+          欢迎使用
         </h1>
+        <h2 className={styles.subtitle}>
+          本系统接入Linux.do OAuth2.0认证
+        </h2>
+
+        <p className={styles.description}>
+          安全、便捷的认证方式，一键登录获取更多服务
+        </p>
 
         <div className={styles.loginButton}>
-          <img src="/linuxdo.png" alt="LinuxDo Logo" height="30px" />
           <button onClick={loginWithLinuxDo}>
-            使用LinuxDo账号登录
+            <img src="https://double.fkgpt.fun/?name=LDO&size=32" alt="LinuxDo Logo" className={styles.buttonIcon} />
+            授权登录
           </button>
+        </div>
+        
+        <div className={styles.footer}>
+          <p>
+            通过授权登录，即表示您同意我们的
+            <a href="https://linux.do/terms" target="_blank" rel="noopener noreferrer">服务条款</a>
+            和
+            <a href="https://linux.do/privacy" target="_blank" rel="noopener noreferrer">隐私政策</a>
+          </p>
         </div>
       </main>
     </div>

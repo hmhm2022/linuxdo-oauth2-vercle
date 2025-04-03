@@ -8,6 +8,7 @@ export default function Callback() {
   const [status, setStatus] = useState('处理中...');
   const [userInfo, setUserInfo] = useState(null);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -17,11 +18,13 @@ export default function Callback() {
 
     if (!code) {
       setError('未收到授权码，授权失败');
+      setLoading(false);
       return;
     }
 
     if (state !== savedState) {
       setError('状态验证失败，可能存在CSRF攻击风险');
+      setLoading(false);
       return;
     }
 
@@ -29,6 +32,7 @@ export default function Callback() {
     localStorage.removeItem('oauth_state');
 
     // 获取token
+    setStatus('正在获取授权令牌...');
     fetch('/api/token', {
       method: 'POST',
       headers: {
@@ -47,7 +51,7 @@ export default function Callback() {
           throw new Error('未获取到有效token');
         }
         
-        setStatus('获取用户信息中...');
+        setStatus('正在获取用户信息...');
         
         // 获取用户信息
         return fetch('/api/user', {
@@ -67,40 +71,117 @@ export default function Callback() {
       .then(userData => {
         setStatus('授权成功');
         setUserInfo(userData);
+        setLoading(false);
       })
       .catch(err => {
         setError(err.message || '授权过程中发生错误');
+        setLoading(false);
       });
   }, [router.isReady, router.query]);
+
+  const getTrustLevelText = (level) => {
+    const levels = {
+      0: '新用户',
+      1: '基础用户',
+      2: '普通用户',
+      3: '高级用户',
+      4: '资深用户'
+    };
+    return levels[level] || `等级 ${level}`;
+  };
 
   return (
     <div className={styles.container}>
       <Head>
-        <title>LinuxDo OAuth2 回调</title>
+        <title>Linux.do OAuth2 认证 - {error ? '授权失败' : status}</title>
         <meta name="description" content="LinuxDo OAuth2 回调处理" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <main className={styles.main}>
-        <h1 className={styles.title}>
-          {error ? '授权失败' : status}
-        </h1>
-
-        {error && (
-          <div className={styles.error}>
-            <p>{error}</p>
-            <button onClick={() => router.push('/')}>返回登录</button>
+        {loading ? (
+          <div className={styles.loading}>
+            <div className={styles.spinner}></div>
+            <h2 className={styles.statusText}>{status}</h2>
           </div>
-        )}
+        ) : (
+          <>
+            <h1 className={styles.title}>
+              {error ? '授权失败' : '授权成功'}
+            </h1>
 
-        {userInfo && (
-          <div className={styles.userInfo}>
-            <h2>用户信息</h2>
-            <p><strong>ID:</strong> {userInfo.id}</p>
-            <p><strong>用户名:</strong> {userInfo.username}</p>
-            <pre>{JSON.stringify(userInfo, null, 2)}</pre>
-            <button onClick={() => router.push('/')}>返回首页</button>
-          </div>
+            {error && (
+              <div className={styles.error}>
+                <p>{error}</p>
+                <button onClick={() => router.push('/')} className={styles.backButton}>返回登录</button>
+              </div>
+            )}
+
+            {userInfo && (
+              <div className={styles.userInfoCard}>
+                <div className={styles.userHeader}>
+                  <div className={styles.avatarContainer}>
+                    {userInfo.avatar_url ? (
+                      <img src={userInfo.avatar_url} alt={userInfo.username} className={styles.avatar} />
+                    ) : (
+                      <div className={styles.avatarPlaceholder}>
+                        {userInfo.username ? userInfo.username.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                    )}
+                  </div>
+                  <div className={styles.userBasicInfo}>
+                    <h2 className={styles.username}>{userInfo.username}</h2>
+                    <div className={styles.userId}>ID: {userInfo.id}</div>
+                    <div className={styles.trustLevel}>
+                      <span className={styles.trustBadge}>
+                        信任等级: {userInfo.trust_level}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className={styles.userDetails}>
+                  <h3>用户详细信息</h3>
+                  
+                  {/* 邮箱和登录名行 */}
+                  <div className={styles.userInfoRow}>
+                    {userInfo.email && (
+                      <div className={styles.userInfoField}>
+                        <span className={styles.infoLabel}>邮箱:</span>
+                        <span className={styles.infoValue}>{userInfo.email}</span>
+                      </div>
+                    )}
+                    {userInfo.login && (
+                      <div className={styles.userInfoField}>
+                        <span className={styles.infoLabel}>登录名:</span>
+                        <span className={styles.infoValue}>{userInfo.login}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* 其他用户信息 */}
+                  <div className={styles.userDetailGrid}>
+                    {userInfo.name && (
+                      <div className={styles.detailItem}>
+                        <span className={styles.detailLabel}>姓名:</span>
+                        <span className={styles.detailValue}>{userInfo.name}</span>
+                      </div>
+                    )}
+                    {userInfo.external_ids && (
+                      <div className={styles.detailItem}>
+                        <span className={styles.detailLabel}>外部ID:</span>
+                        <span className={styles.detailValue}>{JSON.stringify(userInfo.external_ids)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className={styles.buttonContainer}>
+                  <button onClick={() => router.push('/')} className={styles.backButton}>返回首页</button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
